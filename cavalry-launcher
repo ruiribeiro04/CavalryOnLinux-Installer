@@ -1,0 +1,64 @@
+#!/bin/bash
+# cavalry-launcher — launch Cavalry (the animation app) under Wine.
+# Part of CavalryOnLinux-Installer (GPL-3.0).
+#
+# Resolution order:
+#   1. $CALVARY_WINE (explicit path)
+#   2. patched Wine built by this installer (~/.local/share/cavalry-wine)
+#   3. system wine / wine-staging
+# WINEPREFIX defaults to ~/.cavalry (override with CALVARY_PREFIX).
+
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "$0")" && pwd)"
+source "$ROOT/lib/common.sh"
+
+# Pick the wine binary.
+select_wine() {
+  if [[ -n "${CALVARY_WINE:-}" && -x "$CALVARY_WINE" ]]; then
+    WINE_BIN="$CALVARY_WINE"; return 0
+  fi
+  local patched="$(patched_wine_bin)"
+  if [[ -x "$patched" ]]; then
+    WINE_BIN="$patched"; return 0
+  fi
+  for cand in wine-staging wine wine64; do
+    if have "$cand"; then
+      WINE_BIN="$(command -v "$cand")"; return 0
+    fi
+  done
+  return 1
+}
+
+if ! select_wine; then
+  die "No Wine found. Install Wine or run the installer with --build-wine."
+fi
+
+PREFIX="$(default_prefix)"
+EXE="$PREFIX/drive_c/Program Files/Cavalry/Cavalry.exe"
+
+if [[ ! -f "$EXE" ]]; then
+  die "Cavalry is not installed in the prefix yet. Run ./install.sh first."
+fi
+
+# Use wineserver to stop any stale instance (sign-in IPC sometimes needs a
+# clean slate), but only if nothing is already running for this prefix.
+if have wineserver && ! pgrep -f "wineserver.*$PREFIX" >/dev/null 2>&1; then
+  wineserver -k 2>/dev/null || true
+fi
+
+# CRITICAL for sign-in: the working directory must be the Cavalry install dir.
+# When the browser later fires cavalry://auth/callback?... the handler spawns a
+# SECOND Wine instance whose cwd is set by the .desktop Path= line; the two
+# instances talk over IPC keyed on the working directory. If this launcher
+# keeps a different cwd, the callback's second instance cannot find this
+# running instance and the sign-in tokens are lost (community-verified: dezuhan
+# gist a6e50a2c3e0432d270d28b0521236efb and micahlt CavalryOnLinux.md
+# 3c97f834adaf688fe18344c0f546466c).
+CAVALRY_DIR="$PREFIX/drive_c/Program Files/Cavalry"
+if [[ -d "$CAVALRY_DIR" ]]; then
+  cd "$CAVALRY_DIR"
+fi
+
+ok "Launching Cavalry ($EXE) with $WINE_BIN..."
+exec env WINEPREFIX="$PREFIX" WINE="$WINE_BIN" "$WINE_BIN" "$EXE" "$@"

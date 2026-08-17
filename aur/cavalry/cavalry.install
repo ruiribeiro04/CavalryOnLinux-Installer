@@ -1,0 +1,21 @@
+#!/bin/bash
+# cavalry.install — post-install steps for the cavalry AUR package.
+# Runs as root; user-level registration is deferred to the first `cavalry` run.
+
+post_install() {
+  # Make sure the desktop database picks up the new .desktop files.
+  if command -v update-desktop-database >/dev/null 2>&1; then
+    update-desktop-database /usr/share/applications >/dev/null 2>&1 || true
+  fi
+  # The cavalry:// URL handler registration happens per-user on first launch
+  # (xdg-settings is user-scoped), so nothing to do here.
+  echo "Cavalry installed. First run:"
+  echo "  cavalry          # sets up the Wine prefix and launches"
+  echo "  cavalry --help   # more options"
+}
+
+post_remove() {
+  if command -v update-desktop-database >/dev/null 2>&1; then
+    update-desktop-database /usr/share/applications >/dev/null 2>&1 || true
+  fi
+}

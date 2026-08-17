@@ -1,0 +1,14 @@
+[Desktop Entry]
+Type=Application
+Name=Cavalry
+GenericName=Procedural animation tool
+Comment=Procedural animation for motion designers (via Wine)
+# The @WINE@ and @WINEPREFIX@ placeholders are substituted by install.sh.
+Exec=env WINEPREFIX=@WINEPREFIX@ WINE=@WINE@ @WINE@ "C:\Program Files\Cavalry\Cavalry.exe" %U
+Path=@CAVALRY_DIR@
+Icon=@ICON@
+Terminal=false
+Categories=Graphics;2DGraphics;Video;AudioVideo;
+Keywords=animation;motion;graphics;cavalry;
+MimeType=x-scheme-handler/cavalry;
+StartupNotify=true

@@ -1,0 +1,53 @@
+# Maintainer: Cavalry On Linux installer team
+# Contributor: (your name) <you@example.com>
+#
+# Patched Wine 11.13 for Cavalry: stock Wine plus the
+# cavalry-connection-fix noodle-park-and-overlay patch (LGPL-2.1-or-later),
+# which fixes the connection-drag bug in Cavalry under Wine.
+#
+# Installs into /opt/cavalry-wine as a self-contained tree. This package
+# does NOT conflict with the distro 'wine' package; it just provides it.
+
+pkgname=cavalry-wine
+pkgver=11.13
+pkgrel=1
+pkgdesc="Patched Wine 11.13 for Cavalry (connection-drag fix)"
+arch=('x86_64')
+url="https://gitlab.winehq.org/wine/wine"
+license=('LGPL-2.1-or-later')
+depends=(
+  'libx11' 'libxext' 'libxinerama' 'libxrandr' 'libxcursor' 'libxi'
+  'libxcomposite' 'libxfixes' 'libxrender' 'libxxf86vm' 'libgl' 'libegl'
+  'libxmu' 'libxpm' 'libxkbcommon' 'freetype2' 'fontconfig' 'lcms2'
+  'libxml2' 'libxslt' 'gnutls' 'libgcrypt' 'libpcap' 'alsa-lib' 'libpulse'
+  'openal' 'sdl2' 'v4l-utils' 'cups' 'gst-plugins-base' 'gst-plugins-good'
+  'gst-plugins-bad' 'gst-plugins-ugly' 'gstreamer' 'libgphoto2' 'libusb'
+  'mtdev' 'libcups' 'osmesa' 'vulkan-icd-loader'
+)
+makedepends=('git' 'base-devel' 'mingw-w64-gcc' 'gcc' 'opencl-headers' 'mesa' 'vulkan-icd-loader')
+source=(
+  "wine-${pkgver}::git+https://gitlab.winehq.org/wine/wine.git#tag=wine-${pkgver}"
+  "installer::git+https://github.com/ruiribeiro04/CavalryOnLinux-Installer.git"
+)
+sha256sums=('SKIP' 'SKIP')
+
+prepare() {
+  cd "$srcdir/wine-${pkgver}"
+  # Apply the Cavalry connection-drag patch.
+  git apply --check "$srcdir/installer/patch/cavalry-connection-noodle-park-and-overlay.patch" ||
+    die "Patch does not apply cleanly to wine-${pkgver}"
+  git apply "$srcdir/installer/patch/cavalry-connection-noodle-park-and-overlay.patch"
+}
+
+build() {
+  cd "$srcdir/wine-${pkgver}"
+  mkdir -p build
+  cd build
+  ../configure --prefix=/opt/cavalry-wine --enable-archs=x86_64
+  make -j"$(nproc)"
+}
+
+package() {
+  cd "$srcdir/wine-${pkgver}/build"
+  make DESTDIR="$pkgdir" install
+}

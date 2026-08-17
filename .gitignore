@@ -1,0 +1,20 @@
+# Wine source / build dirs from --build-wine
+wine-src/
+build/
+
+# Reference material (third-party clones used only during research)
+base_projects/
+.atl/
+
+# Local caches and data
+.cache/
+.local/
+
+# Python
+__pycache__/
+*.pyc
+
+# Editor junk
+*.swp
+*~
+.DS_Store

@@ -1,0 +1,67 @@
+# Maintainer: Cavalry On Linux installer team
+# Contributor: (your name) <you@example.com>
+#
+# NOTE ON REDISTRIBUTION: Cavalry is proprietary software (Canva). The MSI is
+# downloaded at build time from the official cavalry.studio URL, per AUR
+# guidelines for non-free software — this package never redistributes the
+# installer. Users must sign in with their own Canva account (free Starter
+# plan is available).
+#
+# The installer scripts themselves are GPL-3.0 and fetched from the
+# CavalryOnLinux-Installer repository tag referenced below.
+
+pkgname=cavalry
+pkgver=2.7
+pkgrel=1
+pkgdesc="Cavalry procedural animation tool for Linux (Wine) — downloads the official installer from cavalry.studio"
+arch=('x86_64')
+url="https://cavalry.studio"
+license=('custom:Canva-ToU' 'GPL-3.0-or-later')
+depends=('winetricks' 'wine' 'curl')
+optdepends=(
+  'cavalry-wine: patched Wine with the Cavalry connection-drag fix'
+  'python-pyqt6: graphical installer front-end'
+)
+makedepends=('curl')
+source=(
+  "Cavalry.msi::https://cavalry.studio/downloads/latest/Cavalry.msi"
+  "installer::git+https://github.com/ruiribeiro04/CavalryOnLinux-Installer.git#tag=v${pkgver}"
+)
+# 'latest' MSI URL is non-deterministic — integrity verified by size at build.
+sha256sums=('SKIP' 'SKIP')
+
+package() {
+  local src="$srcdir/installer"
+
+  # Executables.
+  install -Dm755 "$src/install.sh" "$pkgdir/usr/bin/cavalry-install"
+  install -Dm755 "$src/uninstall.sh" "$pkgdir/usr/bin/cavalry-uninstall"
+  install -Dm755 "$src/cavalry-launcher" "$pkgdir/usr/bin/cavalry"
+
+  # Libraries.
+  install -Dm644 "$src/lib/common.sh" "$pkgdir/usr/share/cavalry/lib/common.sh"
+  install -Dm644 "$src/lib/distro.sh" "$pkgdir/usr/share/cavalry/lib/distro.sh"
+  install -Dm644 "$src/lib/wine.sh" "$pkgdir/usr/share/cavalry/lib/wine.sh"
+  install -Dm644 "$src/lib/prefix.sh" "$pkgdir/usr/share/cavalry/lib/prefix.sh"
+  install -Dm644 "$src/lib/cavalry-install.sh" "$pkgdir/usr/share/cavalry/lib/cavalry-install.sh"
+  install -Dm644 "$src/lib/launcher.sh" "$pkgdir/usr/share/cavalry/lib/launcher.sh"
+  install -Dm644 "$src/patch/cavalry-connection-noodle-park-and-overlay.patch" \
+    "$pkgdir/usr/share/cavalry/patch/cavalry-connection-noodle-park-and-overlay.patch"
+  install -Dm644 "$src/gui/cavalry-gui.py" "$pkgdir/usr/share/cavalry/gui/cavalry-gui.py"
+
+  # The official installer, fetched at build time from cavalry.studio.
+  install -Dm644 "$srcdir/Cavalry.msi" "$pkgdir/usr/share/cavalry/Cavalry.msi"
+
+  # Desktop integration — substitute the placeholder paths.
+  install -d "$pkgdir/usr/share/applications"
+  sed -e "s|@WINE@|/usr/bin/wine|g" \
+      -e "s|@WINEPREFIX@|/home/\$USER/.cavalry|g" \
+      -e "s|@ICON@|cavalry|g" \
+      "$src/assets/cavalry.desktop.in" > "$pkgdir/usr/share/applications/Cavalry.desktop"
+  install -Dm644 "$src/assets/cavalry.svg" "$pkgdir/usr/share/icons/hicolor/scalable/apps/cavalry.svg"
+
+  # Docs.
+  install -Dm644 "$src/README.md" "$pkgdir/usr/share/doc/cavalry/README.md"
+  install -Dm644 "$src/docs/LEGAL.md" "$pkgdir/usr/share/doc/cavalry/LEGAL.md"
+  install -Dm644 "$src/docs/WINE.md" "$pkgdir/usr/share/doc/cavalry/WINE.md"
+}
