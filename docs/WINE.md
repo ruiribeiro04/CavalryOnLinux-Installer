@@ -73,23 +73,43 @@ The installer creates a 64-bit WINEPREFIX at `~/.cavalry` (override with
 
 ## Canva sign-in and the cavalry:// handler
 
-Cavalry 2.7+ signs in through a browser flow using a `cavalry://` URL. Wine
-needs a registered handler so the callback opens Cavalry instead of failing.
-The installer writes `~/.local/share/applications/cavalry-handler.desktop`
-with `MimeType=x-scheme-handler/cavalry` and registers it via
-`xdg-settings set default-url-scheme-handler cavalry ...`.
+Cavalry 2.7+ signs in through a browser flow: the app asks Canva, the browser
+logs you in, and Canva redirects to a `cavalry://auth/callback?...` URL carrying
+a one-time code. Linux hands that URL to a registered handler, which must
+deliver it to the **already-running** Cavalry instance.
 
-Known quirk: the sign-in window can open a second window. The `.desktop`
-`Path=` must match the working directory of the main instance (the installer
-sets it correctly). If sign-in still misbehaves: close the blank window,
-relaunch Cavalry, and the handler should now route the callback.
+The installer writes `~/.local/share/applications/cavalry-handler.desktop`
+with `MimeType=x-scheme-handler/cavalry`, `Exec=... Cavalry.exe %u`, and a
+`Path=` pointing at the Cavalry install dir, then registers it via
+`xdg-settings set default-url-scheme-handler cavalry cavalry-handler.desktop`
+**and** a direct self-healing write to `mimeapps.list` (older installers passed
+the full path to xdg-settings, which silently failed and left the scheme
+unbound).
+
+### Why `Path=` matters (the working-directory IPC fix)
+
+The handler spawns a *second* Wine instance. Wine instances in the same prefix
+communicate over IPC that is keyed on the working directory, so the second
+instance only finds the first if both share the same cwd. The `.desktop`
+`Path=` sets the handler's cwd, and `cavalry-launcher` now `cd`s into the
+Cavalry install dir before exec, so the two instances match. Community-verified
+(dezuhan gist a6e50a2c3e0432d270d28b0521236efb, micahlt CavalryOnLinux.md
+3c97f834adaf688fe18344c0f546466c).
+
+If the callback does not reach the running app you get a fresh window (or
+nothing). Verified on this project: with the fix, firing
+`xdg-open cavalry://auth/callback?...` against a running instance keeps a single
+Cavalry process whose cwd equals the handler's cwd; the app logs
+`Canva auth failed: State mismatch` only when the test uses a fake state token
+(expected — a real Canva redirect carries a matching state).
 
 ## Troubleshooting
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
 | Connection dragging doesn't work | Unpatched Wine | `./install.sh --build-wine` |
-| Sign-in opens a blank/new window | Handler or working-dir issue | Reinstall launcher: `./install.sh`; or fix `Path=` in `cavalry-handler.desktop` |
+| Sign-in opens a blank/new window | Handler or working-dir mismatch | Ensure Cavalry is running, then retry sign-in; reinstall launcher `./install.sh`; check `Path=` in `cavalry-handler.desktop` and cwd of the running Cavalry.exe (`readlink /proc/<pid>/cwd`) |
+| Sign-in logs `State mismatch` | Stale/fake callback URL | Use the real Canva redirect (each code/state pair is one-time); retry sign-in from inside Cavalry |
 | Black/white viewport | GPU/driver below OpenGL 4.1, or Mesa bug | Update drivers/Mesa; try `MESA_GL_VERSION_OVERRIDE=4.1` (unsupported workaround) |
 | Wayland + NVIDIA artifacts | Wine Wayland driver | Graphics driver is already forced to `x11,wayland`; restart Wine after edits |
 | `icuuc`/`icuin` override errors | Newer Wine built them in | Harmless; remove the overrides if they cause errors |

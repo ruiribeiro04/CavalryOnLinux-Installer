@@ -55,6 +55,10 @@ die() {
 
 # Confirm a yes/no prompt. Returns 0 for yes, 1 for no. Default no.
 confirm() {
+  # ASSUME_YES=1 (set by --yes callers, e.g. the GUI installer) answers yes.
+  if [[ "${ASSUME_YES:-0}" == "1" ]]; then
+    return 0
+  fi
   local prompt="${1:-Continue?}" answer
   read -r -p "$prompt (y/N): " answer
   [[ "${answer,,}" == "y" || "${answer,,}" == "yes" ]]

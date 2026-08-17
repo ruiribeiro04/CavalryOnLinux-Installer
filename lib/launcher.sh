@@ -36,7 +36,6 @@ Path=$cav_dir
 Icon=cavalry
 Terminal=false
 Categories=Graphics;2DGraphics;Video;
-MimeType=x-scheme-handler/cavalry;
 StartupNotify=true
 EOF
   chmod +x "$APPS_DIR/Cavalry.desktop"

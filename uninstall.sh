@@ -9,6 +9,14 @@ source "$ROOT/lib/common.sh"
 source "$ROOT/lib/cavalry-install.sh"
 source "$ROOT/lib/launcher.sh"
 
+# --yes: skip interactive confirmations (used by the GUI installer, where the
+# button click itself is the user's confirmation).
+ASSUME_YES=0
+if [[ "${1:-}" == "--yes" ]]; then
+  ASSUME_YES=1
+  shift
+fi
+
 say "Cavalry uninstall"
 
 # 1. Launcher + protocol handler.

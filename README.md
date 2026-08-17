@@ -91,6 +91,18 @@ During testing three installer bugs were found and fixed:
    `mimeapps.list` and browser sign-in callbacks could not reach the app. The
    installer now registers via both xdg-settings *and* a direct, self-healing
    write to `mimeapps.list` (`register_mime_handler`).
+4. The main launcher (`Cavalry.desktop`) wrongly declared
+   `MimeType=x-scheme-handler/cavalry`, so desktop environments offered two
+   candidates for `cavalry://` links. Only the dedicated protocol handler
+   (`cavalry-handler.desktop`) may claim the scheme.
+
+> **Sign-in works like this**: launch Cavalry from your application menu or
+> with `./cavalry-launcher` (this sets the working directory to the Cavalry
+> install dir, matching the handler's `Path=` line so Wine IPC can reach the
+> running instance), then click **Sign In *inside* the app** and complete the
+> browser redirect. If you instead fire `cavalry://auth/callback` manually
+> while no in-app sign-in is pending, the app logs `Auth has no pending auth
+> flow` and ignores it.
 
 ## Why Wine? Why this installer?
 

@@ -34,7 +34,7 @@ def run_gui() -> int:
     from PyQt6.QtGui import QIcon
     from PyQt6.QtWidgets import (
         QApplication, QMainWindow, QPushButton, QPlainTextEdit, QVBoxLayout,
-        QHBoxLayout, QLabel, QWidget, QProgressBar,
+        QHBoxLayout, QLabel, QWidget, QProgressBar, QMessageBox,
     )
 
     class InstallerWindow(QMainWindow):
@@ -70,7 +70,7 @@ def run_gui() -> int:
             self.btn_install = QPushButton("Install / Update")
             self.btn_install.clicked.connect(lambda: self.start(["install"]))
             self.btn_uninstall = QPushButton("Uninstall")
-            self.btn_uninstall.clicked.connect(lambda: self.start(["uninstall"]))
+            self.btn_uninstall.clicked.connect(self.confirm_uninstall)
             self.btn_logs = QPushButton("Open logs folder")
             self.btn_logs.clicked.connect(self.open_logs)
             for b in (self.btn_install, self.btn_uninstall, self.btn_logs):
@@ -88,6 +88,24 @@ def run_gui() -> int:
             logs = ROOT / ".local" / "logs"
             logs.mkdir(parents=True, exist_ok=True)
             subprocess.Popen(["xdg-open", str(logs)])
+
+        def confirm_uninstall(self) -> None:
+            """Ask for explicit confirmation before running the uninstaller."""
+            if self._running:
+                self.append("Already running an operation — wait for it to finish.")
+                return
+            ans = QMessageBox.question(
+                self,
+                "Uninstall Cavalry?",
+                "This removes the launcher, protocol handler and the app files "
+                "from the Wine prefix. Keep your prefix data?\n\n"
+                "Proceed?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
+                QMessageBox.StandardButton.No,
+            )
+            if ans == QMessageBox.StandardButton.Yes:
+                self.append("Uninstall confirmed — removing Cavalry...")
+                self.start(["uninstall", "--yes"])
 
         def start(self, args: list[str]) -> None:
             if self._running:
